@@ -1,0 +1,527 @@
+import sys
+from PyQt5.QtCore import Qt
+from PyQt5.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QMessageBox,
+    QTableWidget,
+    QTableWidgetItem, QPushButton, QLabel, QLineEdit, QVBoxLayout, QTextEdit, QPlainTextEdit
+)
+
+
+class Navigation(QMainWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Навигация")
+
+        self.widthWindow = 400
+        self.heightWindow = 400
+
+        self.resize(self.widthWindow, self.heightWindow)
+
+        self.columname = ["id", "name", "surname", "last_name", "email", "password"]
+
+        self.addButton()
+
+        self.createDatabase()
+
+    def createDatabase(self):
+        con = QSqlDatabase.addDatabase("QSQLITE")
+        con.setDatabaseName("buy.sqlite")
+
+        if not con.open():
+            print("Database Error: %s" % con.lastError().databaseText())
+            sys.exit(1)
+
+        createTableQuery = QSqlQuery()
+        createTableQuery.exec(
+            """
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE NOT NULL,
+                name VARCHAR(40) NOT NULL,
+                surname VARCHAR(40) NOT NULL,
+                last_name VARCHAR(40) NOT NULL,
+                email VARCHAR(40) NOT NULL,
+                password INTEGER
+            )
+            """
+        )
+
+        print(con.tables())
+
+    # для вывода таблицы на экран
+    def createTable(self):
+        self.users = QTableWidget()  # создание таблицы
+        self.users.setColumnCount(6)  # количество столбцов
+        self.users.setHorizontalHeaderLabels(self.columname)  # изменение имён столбцов
+        query = QSqlQuery("SELECT id, name, surname, last_name, email, password FROM users")
+
+        while query.next():
+            rows = self.users.rowCount()
+            self.users.setRowCount(rows + 1)
+            self.users.setItem(rows, 0, QTableWidgetItem(str(query.value(0))))
+            self.users.setItem(rows, 1, QTableWidgetItem(query.value(1)))
+            self.users.setItem(rows, 2, QTableWidgetItem(query.value(2)))
+            self.users.setItem(rows, 3, QTableWidgetItem(query.value(3)))
+            self.users.setItem(rows, 4, QTableWidgetItem(query.value(4)))
+            self.users.setItem(rows, 5, QTableWidgetItem(query.value(5)))
+            self.users.setItem(rows, 6, QTableWidgetItem(str(query.value(6))))
+        self.users.resizeColumnsToContents()
+        self.setCentralWidget(self.users)
+
+    def addButton(self):
+        btnRegistration = QPushButton("registration", self)
+        btnRegistration.resize(btnRegistration.sizeHint())
+        widthBtnRegistration = btnRegistration.width()
+        btnRegistration.move(int(self.widthWindow / 2 - widthBtnRegistration / 2), int(self.heightWindow / 5))
+        btnRegistration.clicked.connect(self.btnRegistrationClicked)
+
+        btnSignIn = QPushButton("sing in", self)
+        btnSignIn.resize(btnSignIn.sizeHint())
+        widthBtnSignIn = btnSignIn.width()
+        btnSignIn.move(int(self.widthWindow / 2 - widthBtnSignIn / 2), int(self.heightWindow / 5 * 2))
+        btnSignIn.clicked.connect(self.btnSingInClicked)
+
+        btnDeleteUser = QPushButton("delete user", self)
+        btnDeleteUser.resize(btnDeleteUser.sizeHint())
+        widthBtnDeleteUser = btnDeleteUser.width()
+        btnDeleteUser.move(int(self.widthWindow / 2 - widthBtnDeleteUser / 2), int(self.heightWindow / 5 * 3))
+        btnDeleteUser.clicked.connect(self.deleteUsers)
+
+        btnSeeAllUsers = QPushButton("see all users", self)
+        btnSeeAllUsers.resize(btnSeeAllUsers.sizeHint())
+        widthBtnSeeAllUsers = btnSeeAllUsers.width()
+        btnSeeAllUsers.move(int(self.widthWindow / 2 - widthBtnSeeAllUsers / 2), int(self.heightWindow / 5 * 4))
+        btnSeeAllUsers.clicked.connect(self.clickedBtnSeeAllUsers)
+
+    def btnRegistrationClicked(self):
+        self.windowRegistration = RegistrationWindow()
+        self.windowRegistration.show()
+        self.close()
+
+    def btnSingInClicked(self):
+        self.windowSingIn = SingInWindow()
+        self.windowSingIn.show()
+        self.close()
+
+    def clickedBtnSeeAllUsers(self):
+        self.createTable()
+
+    def deleteUsers(self):
+        self.delete = DeleteUsers()
+        self.delete.show()
+        self.close()
+
+
+class RegistrationWindow(QMainWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Регистрация")
+
+        self.widthRegistrationWindow = 300
+        self.heightRegistrationWindow = 200
+        self.resize(self.widthRegistrationWindow, self.heightRegistrationWindow)
+
+        self.text()
+        self.addBtn()
+
+    def text(self):
+        self.name = QLabel('Name', self)
+        heightName = self.name.height()
+
+        self.gettingName = QLineEdit(self)
+        self.gettingName.move(100, 0)
+        heightGettingName = self.gettingName.height()
+        self.gettingName.textChanged.connect(self.gettingInformation)
+
+        self.surname = QLabel('Surname', self)
+        self.surname.move(0, heightName)
+        heightSurname = self.surname.height()
+
+        self.gettingSurname = QLineEdit(self)
+        self.gettingSurname.move(100, heightGettingName)
+        heightGettingSurname = self.gettingSurname.height()
+        self.gettingSurname.textChanged.connect(self.gettingInformation)
+
+        self.lastName = QLabel('Last Name', self)
+        self.lastName.move(0, heightName + heightSurname)
+        heightLastName = self.lastName.height()
+
+        self.gettingLastName = QLineEdit(self)
+        self.gettingLastName.move(100, heightGettingName + heightGettingSurname)
+        heightGettingLastName = self.gettingLastName.height()
+        self.gettingLastName.textChanged.connect(self.gettingInformation)
+
+        self.email = QLabel('Email', self)
+        self.email.move(0, heightName + heightSurname + heightLastName)
+        heightEmail = self.email.height()
+
+        self.gettingEmail = QLineEdit(self)
+        self.gettingEmail.move(100, heightGettingName + heightGettingSurname + heightGettingLastName)
+        heightGettingEmail = self.gettingEmail.height()
+        self.gettingEmail.textChanged.connect(self.gettingInformation)
+
+        self.password = QLabel("Password", self)
+        self.password.move(0, heightName + heightSurname + heightLastName + heightEmail)
+        heightPassword = self.password.height()
+
+        self.gettingPassword = QLineEdit(self)
+        self.gettingPassword.move(100, heightGettingName + heightGettingSurname + heightGettingLastName + \
+                                  heightGettingEmail)
+        self.gettingPassword.textChanged.connect(self.gettingInformation)
+
+        self.heightRegistrationElement = heightPassword + heightEmail + heightSurname + heightLastName + heightName + 10
+
+    def addBtn(self):
+        btnRegistration = QPushButton("Registration", self)
+        btnRegistration.resize(btnRegistration.sizeHint())
+        widthBTNRegistration = btnRegistration.width()
+        btnRegistration.move(int(self.widthRegistrationWindow / 4 - widthBTNRegistration / 2),
+                             self.heightRegistrationElement)
+        btnRegistration.clicked.connect(self.btnRegistrationClicked)
+
+        backBTN = QPushButton("back", self)
+        backBTN.resize(backBTN.sizeHint())
+        widthBackBTN = backBTN.width()
+        backBTN.move(int(self.widthRegistrationWindow / 2 + widthBackBTN / 2), self.heightRegistrationElement)
+        backBTN.clicked.connect(self.backBTNCliced)
+
+    def gettingInformation(self):
+        self.sender1 = self.gettingName.text()
+        self.sender2 = self.gettingSurname.text()
+        self.sender3 = self.gettingLastName.text()
+        self.sender4 = self.gettingEmail.text()
+        self.sender5 = self.gettingPassword.text()
+
+    def backBTNCliced(self):
+        self.navigation = Navigation()
+        self.navigation.show()
+        self.close()
+
+    def btnRegistrationClicked(self):
+        self.gettingInformation()
+
+        if len(self.sender1) != 0 and len(self.sender2) != 0 and len(self.sender3) != 0 and len(
+                self.sender4) != 0 and len(self.sender5) != 0:
+            data = (self.sender1, self.sender2, self.sender3, self.sender4, self.sender5)
+            insertDataQuery = QSqlQuery()
+            insertDataQuery.prepare(
+                """
+                INSERT INTO users (
+                    name,
+                    surname,
+                    last_name,
+                    email,
+                    password
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """
+            )
+
+            insertDataQuery.addBindValue(data[0])
+            insertDataQuery.addBindValue(data[1])
+            insertDataQuery.addBindValue(data[2])
+            insertDataQuery.addBindValue(data[3])
+            insertDataQuery.addBindValue(data[4])
+            insertDataQuery.exec()
+
+            win.show()
+            self.close()
+        else:
+            self.close()
+            self.show()
+
+
+class SingInWindow(QMainWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.widthSingInWindow = 300
+        self.heightSingInWindow = 130
+        self.resize(self.widthSingInWindow, self.heightSingInWindow)
+
+        self.text()
+        self.addBTN()
+
+    def text(self):
+        self.email = QLabel("email", self)
+        self.heightEmail = self.email.height()
+        self.gettingEmail = QLineEdit(self)
+        self.gettingEmail.textChanged.connect(self.gettingInformation)
+        self.gettingEmail.move(100, 0)
+        self.heightGettingEmail = self.gettingEmail.height()
+
+        self.password = QLabel("password", self)
+        self.password.move(0, self.heightEmail)
+        self.gettingPassword = QLineEdit(self)
+        self.gettingPassword.textChanged.connect(self.gettingInformation)
+        self.gettingPassword.move(100, self.heightGettingEmail)
+        self.heightGettingPassword = self.gettingPassword.height()
+
+    def addBTN(self):
+        singInBTN = QPushButton("sing in", self)
+        widthSingInBTN = singInBTN.width()
+        singInBTN.resize(singInBTN.sizeHint())
+        singInBTN.move(int(self.widthSingInWindow / 6), self.heightGettingEmail + self.heightGettingPassword + 15)
+        singInBTN.clicked.connect(self.singInBTNClicked)
+
+        backBTN = QPushButton("back", self)
+        backBTN.resize(backBTN.sizeHint())
+        widthBackBTN = backBTN.width()
+        backBTN.move(int(self.widthSingInWindow / 6 * 3), self.heightGettingEmail + self.heightGettingPassword + 15)
+        backBTN.clicked.connect(self.backBTNCliced)
+
+    def backBTNCliced(self):
+        self.back = Navigation()
+        self.back.show()
+        self.close()
+
+    def gettingInformation(self):
+        self.sender1 = self.gettingEmail.text()
+        self.sender2 = self.gettingPassword.text()
+
+    def singInBTNClicked(self):
+        self.gettingInformation()
+        self.value1 = 0
+
+        if len(self.sender1) != 0 and len(self.sender2) != 0:
+            createTableQuery = QSqlQuery()
+            createTableQuery.exec("SELECT email, password FROM users")
+            find = 0
+
+            while createTableQuery.next():
+                self.value1 = createTableQuery.value(0)
+                value2 = createTableQuery.value(1)
+
+                # Значения из таблицы имеют тип данных не только str, но и int и т.д. Для корректного сравнения
+                # необходимо всё привести к одному типу данных
+                if type(createTableQuery.value(0)) == int:
+                    self.value1 = str(self.value1)
+
+                if type(createTableQuery.value(1)) == int:
+                    value2 = str(value2)
+
+                if self.sender1 == self.value1 and self.sender2 == value2:
+                    find = 1
+                    break
+
+            if find == 0:
+                print("Такого аккаунта не существует")
+            else:
+                print("Вы успешно вошли в аккаунт")
+
+                self.newWindow = usersNotes()
+                self.newWindow.__init__(None, self.value1)
+                self.newWindow.show()
+                self.close()
+
+        else:
+            self.close()
+            self.show()
+
+
+class usersNotes(QMainWindow):
+    def __init__(self, parent=None, email=None):
+        super().__init__(parent)
+
+        self.widthSingInWindow = 400
+        self.heightSingInWindow = 260
+        self.resize(self.widthSingInWindow, self.heightSingInWindow)
+        self.setWindowTitle("Заметки")
+
+        self.columname = ["id", "notes"]
+
+        self.text()
+        self.addBTN()
+        self.createTable(email)
+
+    def text(self):
+        self.notes = QPlainTextEdit(self)
+        self.notes.resize(400, 200)
+        self.heightNotes = self.notes.height()
+        self.notes.textChanged.connect(self.gettingInformation)
+
+    def gettingInformation(self):
+        self.sender1 = self.notes.toPlainText()
+
+    def addNotes(self):
+        self.gettingInformation()
+
+        if len(self.sender1) != 0:
+            insertDataQuery = QSqlQuery()
+            insertDataQuery.prepare(
+                f"""
+                INSERT INTO {self.nameTable} (
+                    notes
+                )
+                VALUES (?)
+                """
+            )
+
+            insertDataQuery.addBindValue(self.sender1)
+            insertDataQuery.exec()
+            self.notes.setPlainText("")
+
+    def seeAllNotes(self):
+        self.allNotes = QTableWidget()  # создание таблицы
+        self.allNotes.setColumnCount(2)  # количество столбцов
+        self.allNotes.setHorizontalHeaderLabels(self.columname)  # изменение имён столбцов
+
+        query = QSqlQuery(f"SELECT id, notes FROM {self.nameTable}")
+
+        while query.next():
+            rows = self.allNotes.rowCount()
+            self.allNotes.setRowCount(rows + 1)
+            self.allNotes.setItem(rows, 0, QTableWidgetItem(str(query.value(0))))
+            self.allNotes.setItem(rows, 1, QTableWidgetItem(query.value(1)))
+        self.allNotes.resizeColumnsToContents()
+        self.setCentralWidget(self.allNotes)
+
+    def addBTN(self):
+        btnAddNotes = QPushButton("добавить запись", self)
+        btnAddNotes.adjustSize()
+        btnAddNotes.move(10, self.heightNotes + 20)
+        btnAddNotes.clicked.connect(self.addNotes)
+
+        btnSeeAllNotes = QPushButton("посмотреть все записи", self)
+        btnSeeAllNotes.adjustSize()
+        btnSeeAllNotes.move(int(self.widthSingInWindow / 3), self.heightNotes + 20)
+        btnSeeAllNotes.clicked.connect(self.seeAllNotes)
+
+        backBTN = QPushButton("back", self)
+        backBTN.resize(backBTN.sizeHint())
+        widthBackBTN = backBTN.width()
+        backBTN.move(int(self.widthSingInWindow / 4 * 3), self.heightNotes + 20)
+        backBTN.clicked.connect(self.backBTNCliced)
+
+    def backBTNCliced(self):
+        self.back = Navigation()
+        self.back.show()
+        self.close()
+
+    def createTable(self, email):
+        newEmail = ""
+        a = 0
+
+        if email != None:
+            print("Добро пожаловать", email)
+            if email.count("@") != 0:
+                for i in range(len(email)):
+                    print(a)
+                    if email[i] != "@" and a != 1:
+                        newEmail += email[i]
+                    if email[i] == "@":
+                        a = 1
+            else:
+                newEmail = email
+
+            self.nameTable = "notes_" + newEmail
+            createTableQuery = QSqlQuery()
+            createTableQuery.exec(
+                f"""
+                CREATE TABLE {self.nameTable} (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE NOT NULL,
+                    notes
+                )
+                """
+            )
+
+
+class DeleteUsers(QMainWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("delete users")
+        self.resize(200, 100)
+
+        self.text()
+        self.addBTN()
+
+    def text(self):
+        self.email = QLabel("email", self)
+        self.heightEmail = self.email.height()
+        self.gettingEmail = QLineEdit(self)
+        self.gettingEmail.textChanged.connect(self.gettingInformation)
+        self.gettingEmail.move(70, 0)
+        self.heightGettingEmail = self.gettingEmail.height()
+
+        self.password = QLabel("password", self)
+        self.password.move(0, self.heightEmail)
+        self.gettingPassword = QLineEdit(self)
+        self.gettingPassword.textChanged.connect(self.gettingInformation)
+        self.gettingPassword.move(70, self.heightGettingEmail)
+        self.heightGettingPassword = self.gettingPassword.height()
+
+    def addBTN(self):
+        delete = QPushButton("delete", self)
+        delete.move(0, self.heightGettingEmail + self.heightGettingPassword + 5)
+        widthDelete = delete.width()
+        delete.clicked.connect(self.deleteClicked)
+
+        backBTN = QPushButton("back", self)
+        backBTN.resize(backBTN.sizeHint())
+        widthBackBTN = backBTN.width()
+        backBTN.move(widthDelete, self.heightGettingEmail + self.heightGettingPassword + 5)
+        backBTN.clicked.connect(self.backBTNCliced)
+
+    def backBTNCliced(self):
+        self.back = Navigation()
+        self.back.show()
+        self.close()
+
+    def gettingInformation(self):
+        self.sender1 = self.gettingEmail.text()
+        self.sender2 = self.gettingPassword.text()
+
+    def deleteClicked(self):
+        self.gettingInformation()
+        find = 0
+        id = None
+        a = 0
+        newEmail = ""
+        email = ""
+        b = 0
+
+        if len(str(self.sender1)) != 0 and len(str(self.sender2)) != 0:
+            query = QSqlQuery("SELECT email, password, id FROM users")
+
+            while query.next():
+                if str(self.sender1) == str(query.value(0)) and str(self.sender2) == str(query.value(1)):
+                    print("Успех")
+                    find = 1
+                if find == 1 and a == 0:
+                    id = query.value(2)
+                    email = str(query.value(0))
+                    a = 1
+
+            if find == 1:
+                print(id)
+
+                QSqlQuery(f"DELETE FROM users WHERE id = {id}")
+                if email.count("@") != 0:
+                    for i in range(len(email)):
+                        if email[i] != "@" and b != 1:
+                            newEmail += email[i]
+                        if email[i] == "@":
+                            b = 1
+                else:
+                    newEmail = email
+
+                nameNotes = "notes_" + newEmail
+
+                QSqlQuery(f"DROP TABLE {nameNotes}")
+
+
+
+
+        else:
+            self.close()
+            self.show()
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    win = Navigation()
+    win.show()
+    sys.exit(app.exec_())
